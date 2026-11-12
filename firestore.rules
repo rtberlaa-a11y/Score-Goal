@@ -1,0 +1,222 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidPlayerProfile(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 80 &&
+             data.mobileNumber is string && data.mobileNumber.size() >= 7 && data.mobileNumber.size() <= 20 &&
+             data.jerseyNumber is int && data.jerseyNumber >= 0 && data.jerseyNumber <= 99 &&
+             data.location is string && data.location.size() > 0 && data.location.size() <= 100 &&
+             (!('position' in data) || data.position in ['Forward', 'Midfielder', 'Defender', 'Goalkeeper', 'Winger']) &&
+             (!('strongFoot' in data) || data.strongFoot in ['Right', 'Left', 'Both']) &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 300)) &&
+             (!('backgroundTheme' in data) || data.backgroundTheme in ['midnight_stadium', 'emerald_turf', 'cyber_neon', 'sunset_derby', 'classic_pitch']) &&
+             (!('goals' in data) || data.goals is int) &&
+             (!('assists' in data) || data.assists is int) &&
+             (!('passes' in data) || data.passes is int) &&
+             (!('matchesPlayed' in data) || data.matchesPlayed is int) &&
+             (!('mvpCount' in data) || data.mvpCount is int) &&
+             (!('followersCount' in data) || data.followersCount is int);
+    }
+
+    function isValidTeam(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 60 &&
+             data.shortName is string && data.shortName.size() > 0 && data.shortName.size() <= 10 &&
+             data.city is string && data.city.size() > 0 && data.city.size() <= 60 &&
+             data.colorHex is string && data.colorHex.size() <= 10 &&
+             data.authorId is string && data.authorId == request.auth.uid &&
+             (!('captainName' in data) || (data.captainName is string && data.captainName.size() <= 80)) &&
+             (!('contactMobile' in data) || (data.contactMobile is string && data.contactMobile.size() <= 20));
+    }
+
+    function isValidMatch(data) {
+      return data.authorId is string && data.authorId.size() > 0 && data.authorId.size() <= 128 &&
+             data.homeTeam is string && data.homeTeam.size() > 0 && data.homeTeam.size() <= 60 &&
+             data.awayTeam is string && data.awayTeam.size() > 0 && data.awayTeam.size() <= 60 &&
+             data.homeScore is int && data.homeScore >= 0 && data.homeScore <= 999 &&
+             data.awayScore is int && data.awayScore >= 0 && data.awayScore <= 999 &&
+             data.status in ['upcoming', 'live_1h', 'halftime', 'live_2h', 'extra_time', 'penalties', 'finished', 'cancelled'] &&
+             (!('title' in data) || (data.title is string && data.title.size() <= 100)) &&
+             (!('tournamentName' in data) || (data.tournamentName is string && data.tournamentName.size() <= 100)) &&
+             (!('authorName' in data) || (data.authorName is string && data.authorName.size() <= 80)) &&
+             (!('venue' in data) || (data.venue is string && data.venue.size() <= 100)) &&
+             (!('format' in data) || (data.format is string && data.format.size() <= 50)) &&
+             (!('kickoffTime' in data) || (data.kickoffTime is string && data.kickoffTime.size() <= 20)) &&
+             (!('matchDate' in data) || (data.matchDate is string && data.matchDate.size() <= 20)) &&
+             (!('currentMinute' in data) || (data.currentMinute is int && data.currentMinute >= 0 && data.currentMinute <= 180)) &&
+             (!('summary' in data) || (data.summary is string && data.summary.size() <= 500));
+    }
+
+    function isValidMatchEvent(data) {
+      return data.matchId is string && data.matchId.size() > 0 && data.matchId.size() <= 128 &&
+             data.authorId is string && data.authorId.size() > 0 && data.authorId.size() <= 128 &&
+             data.minute is int && data.minute >= 0 && data.minute <= 180 &&
+             data.team in ['home', 'away', 'neutral'] &&
+             data.type in ['goal', 'yellow_card', 'red_card', 'substitution', 'penalty', 'kickoff', 'halftime', 'fulltime', 'commentary'] &&
+             (!('playerName' in data) || (data.playerName is string && data.playerName.size() <= 80)) &&
+             (!('secondaryPlayer' in data) || (data.secondaryPlayer is string && data.secondaryPlayer.size() <= 80)) &&
+             (!('detail' in data) || (data.detail is string && data.detail.size() <= 500));
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidPlayerProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       (request.auth.uid == userId ||
+                        incoming().diff(existing()).affectedKeys().hasOnly(['followersCount', 'goals', 'assists', 'passes', 'matchesPlayed']));
+
+      allow delete: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId;
+
+      match /following/{targetUserId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      match /subscriptions/{subId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      match /notifications/{notifId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+    }
+
+    // Teams
+    match /teams/{teamId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+                       isValidId(teamId) &&
+                       incoming().authorId == request.auth.uid &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidTeam(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(teamId) &&
+                       existing().authorId == request.auth.uid &&
+                       isValidTeam(incoming());
+
+      allow delete: if isSignedIn() &&
+                       isValidId(teamId) &&
+                       existing().authorId == request.auth.uid;
+    }
+
+    // Matches collection
+    match /matches/{matchId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+                       isValidId(matchId) &&
+                       incoming().authorId == request.auth.uid &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidMatch(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(matchId) &&
+                       existing().authorId == request.auth.uid &&
+                       incoming().authorId == existing().authorId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidMatch(incoming());
+
+      allow delete: if isSignedIn() &&
+                       isValidId(matchId) &&
+                       existing().authorId == request.auth.uid;
+
+      // Match timeline events subcollection
+      match /events/{eventId} {
+        allow get, list: if isSignedIn();
+
+        allow create: if isSignedIn() &&
+                         isValidId(eventId) &&
+                         incoming().authorId == request.auth.uid &&
+                         incoming().matchId == matchId &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidMatchEvent(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(eventId) &&
+                         existing().authorId == request.auth.uid &&
+                         incoming().authorId == existing().authorId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidMatchEvent(incoming());
+
+        allow delete: if isSignedIn() &&
+                         isValidId(eventId) &&
+                         existing().authorId == request.auth.uid;
+      }
+    }
+
+    // Tournaments collection
+    match /tournaments/{tournamentId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+                       isValidId(tournamentId) &&
+                       incoming().authorId == request.auth.uid &&
+                       incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 100 &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time;
+
+      allow update: if isSignedIn() &&
+                       isValidId(tournamentId) &&
+                       existing().authorId == request.auth.uid &&
+                       incoming().authorId == existing().authorId;
+
+      allow delete: if isSignedIn() &&
+                       isValidId(tournamentId) &&
+                       existing().authorId == request.auth.uid;
+
+      // Standings subcollection
+      match /standings/{standingId} {
+        allow get, list: if isSignedIn();
+
+        allow create, update: if isSignedIn() &&
+                                 isValidId(standingId) &&
+                                 incoming().authorId == request.auth.uid &&
+                                 incoming().tournamentId == tournamentId &&
+                                 incoming().teamName is string && incoming().teamName.size() > 0 && incoming().teamName.size() <= 60 &&
+                                 incoming().played is int && incoming().played >= 0 &&
+                                 incoming().points is int;
+
+        allow delete: if isSignedIn() &&
+                         isValidId(standingId) &&
+                         existing().authorId == request.auth.uid;
+      }
+    }
+  }
+}

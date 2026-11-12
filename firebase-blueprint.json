@@ -1,0 +1,199 @@
+{
+  "entities": {
+    "PlayerProfile": {
+      "title": "PlayerProfile",
+      "description": "Registered player profile with stats, rankings, mobile number, jersey number, and location.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "jerseyNumber": { "type": "integer" },
+        "location": { "type": "string" },
+        "position": { "type": "string", "enum": ["Forward", "Midfielder", "Defender", "Goalkeeper", "Winger"] },
+        "strongFoot": { "type": "string", "enum": ["Right", "Left", "Both"] },
+        "bio": { "type": "string" },
+        "backgroundTheme": { "type": "string", "enum": ["midnight_stadium", "emerald_turf", "cyber_neon", "sunset_derby", "classic_pitch"] },
+        "goals": { "type": "integer" },
+        "assists": { "type": "integer" },
+        "passes": { "type": "integer" },
+        "matchesPlayed": { "type": "integer" },
+        "mvpCount": { "type": "integer" },
+        "followersCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "mobileNumber", "jerseyNumber", "location", "createdAt"]
+    },
+    "Team": {
+      "title": "Team",
+      "description": "Football team created by a user with squad and registered players.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "shortName": { "type": "string" },
+        "city": { "type": "string" },
+        "colorHex": { "type": "string" },
+        "authorId": { "type": "string" },
+        "captainName": { "type": "string" },
+        "contactMobile": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "shortName", "city", "colorHex", "authorId", "createdAt"]
+    },
+    "Match": {
+      "title": "Match",
+      "description": "A football match published publicly with real-time score, time, and statistics.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "title": { "type": "string" },
+        "tournamentName": { "type": "string" },
+        "homeTeam": { "type": "string" },
+        "awayTeam": { "type": "string" },
+        "homeTeamColor": { "type": "string" },
+        "awayTeamColor": { "type": "string" },
+        "homeScore": { "type": "integer" },
+        "awayScore": { "type": "integer" },
+        "status": {
+          "type": "string",
+          "enum": ["upcoming", "live_1h", "halftime", "live_2h", "extra_time", "penalties", "finished", "cancelled"]
+        },
+        "currentMinute": { "type": "integer" },
+        "kickoffTime": { "type": "string" },
+        "matchDate": { "type": "string" },
+        "venue": { "type": "string" },
+        "format": { "type": "string" },
+        "summary": { "type": "string" },
+        "homeShots": { "type": "integer" },
+        "awayShots": { "type": "integer" },
+        "homeShotsOnTarget": { "type": "integer" },
+        "awayShotsOnTarget": { "type": "integer" },
+        "homeFouls": { "type": "integer" },
+        "awayFouls": { "type": "integer" },
+        "homeCorners": { "type": "integer" },
+        "awayCorners": { "type": "integer" },
+        "homePossession": { "type": "integer" },
+        "awayPossession": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "homeTeam", "awayTeam", "homeScore", "awayScore", "status", "createdAt"]
+    },
+    "MatchEvent": {
+      "title": "MatchEvent",
+      "description": "A live match incident such as a goal, card, substitution, or commentary.",
+      "type": "object",
+      "properties": {
+        "matchId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "minute": { "type": "integer" },
+        "team": { "type": "string", "enum": ["home", "away", "neutral"] },
+        "type": {
+          "type": "string",
+          "enum": ["goal", "yellow_card", "red_card", "substitution", "penalty", "kickoff", "halftime", "fulltime", "commentary"]
+        },
+        "playerName": { "type": "string" },
+        "secondaryPlayer": { "type": "string" },
+        "detail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["matchId", "authorId", "minute", "team", "type", "createdAt"]
+    },
+    "Tournament": {
+      "title": "Tournament",
+      "description": "A football league or tournament grouping matches and standings.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "season": { "type": "string" },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "authorId", "createdAt"]
+    },
+    "Standing": {
+      "title": "Standing",
+      "description": "A team standing row in a tournament leaderboard.",
+      "type": "object",
+      "properties": {
+        "tournamentId": { "type": "string" },
+        "teamName": { "type": "string" },
+        "played": { "type": "integer" },
+        "won": { "type": "integer" },
+        "drawn": { "type": "integer" },
+        "lost": { "type": "integer" },
+        "goalsFor": { "type": "integer" },
+        "goalsAgainst": { "type": "integer" },
+        "goalDifference": { "type": "integer" },
+        "points": { "type": "integer" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tournamentId", "teamName", "played", "won", "drawn", "lost", "goalsFor", "goalsAgainst", "points"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "User subscription to match push/live alerts.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "matchId": { "type": "string" },
+        "matchTitle": { "type": "string" },
+        "subscribedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "matchId", "subscribedAt"]
+    },
+    "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "Delivered match notification alert.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "matchId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "matchId", "title", "message", "isRead", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/PlayerProfile" },
+      "description": "Player profile with CricHeroes style registration, ranking, stats and custom theme"
+    },
+    "/teams/{teamId}": {
+      "schema": { "$ref": "#/entities/Team" },
+      "description": "User created football teams and clubs"
+    },
+    "/matches/{matchId}": {
+      "schema": { "$ref": "#/entities/Match" },
+      "description": "Public matches directory with live score updates"
+    },
+    "/matches/{matchId}/events/{eventId}": {
+      "schema": { "$ref": "#/entities/MatchEvent" },
+      "description": "Timeline events for a match"
+    },
+    "/tournaments/{tournamentId}": {
+      "schema": { "$ref": "#/entities/Tournament" },
+      "description": "Tournament definitions"
+    },
+    "/tournaments/{tournamentId}/standings/{standingId}": {
+      "schema": { "$ref": "#/entities/Standing" },
+      "description": "Tournament standings / leaderboard rows"
+    },
+    "/users/{userId}/subscriptions/{matchId}": {
+      "schema": { "$ref": "#/entities/Subscription" },
+      "description": "Matches a user is following for notifications"
+    },
+    "/users/{userId}/notifications/{notifId}": {
+      "schema": { "$ref": "#/entities/NotificationItem" },
+      "description": "User notification alert log"
+    }
+  }
+}
